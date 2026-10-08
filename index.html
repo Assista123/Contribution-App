@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contribution Group Portal</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --success: #34a853;
+            --error: #ea4335;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #202124;
+            --border: #dadce0;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 700px; margin: 0 auto; background: var(--card-bg); padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        h2, h3 { color: var(--primary); margin-top: 0; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
+        input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        .btn { background-color: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-top: 10px; }
+        .btn:hover { opacity: 0.9; }
+        .nav-links { text-align: center; margin-top: 20px; font-size: 14px; }
+        .nav-links a { color: var(--primary); cursor: pointer; text-decoration: none; }
+        .nav-links a:hover { text-decoration: underline; }
+        .panel { display: none; }
+        .active-panel { display: block; }
+        .result-box { margin-top: 15px; background: #f1f3f4; padding: 15px; border-radius: 8px; }
+        .admin-card { background: #fff; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- MEMBER REGISTRATION -->
+    <div id="panel-register" class="panel active-panel">
+        <h2>Member Registration</h2>
+        <div class="form-group"><label>Full Name</label><input type="text" id="reg-fullname" placeholder="e.g. Chiemerie Chinedu"></div>
+        <div class="form-group"><label>Phone Number (with leading zero)</label><input type="text" id="reg-phone" placeholder="e.g. 08012345678"></div>
+        <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
+        <h4 style="margin:5px 0 10px 0; color:var(--primary);">Payout Destination Bank Details (Kuda / Moniepoint)</h4>
+        <div class="form-group"><label>Payout Bank Name</label><input type="text" id="reg-bank-name" placeholder="Kuda or Moniepoint"></div>
+        <div class="form-group"><label>Payout Account Number</label><input type="text" id="reg-account-number" placeholder="0123456789"></div>
+        <div class="form-group"><label>Payout Account Name</label><input type="text" id="reg-account-name" placeholder="Chiemerie Chinedu"></div>
+        <button class="btn" onclick="registerMember()">Create Account</button>
+        <div class="nav-links">Already have an account? <a onclick="switchPanel('login')">Sign in here</a> | <a onclick="switchPanel('admin-login')">Admin Portal</a></div>
+    </div>
+
+    <!-- MEMBER LOGIN -->
+    <div id="panel-login" class="panel">
+        <h2>Member Sign In</h2>
+        <div class="form-group"><label>Member ID</label><input type="text" id="login-id" placeholder="MEM-1001"></div>
+        <div class="form-group"><label>Phone Number</label><input type="text" id="login-phone" placeholder="08012345678"></div>
+        <button class="btn" onclick="loginMember()">Access Portal</button>
+        <div class="nav-links"><a onclick="switchPanel('register')">Register new account</a> | <a onclick="switchPanel('admin-login')">Admin Portal</a></div>
+    </div>
+
+    <!-- MEMBER DASHBOARD -->
+    <div id="panel-dashboard" class="panel">
+        <h2>Welcome, <span id="dash-name"></span></h2>
+        <p><strong>Member ID:</strong> <span id="dash-id"></span></p>
+        <div style="background:#e8f0fe; padding:12px; border-radius:6px; margin-bottom:15px;"><strong>Saved Payout Bank:</strong> <span id="dash-bank-info"></span></div>
+
+        <h3>My Slots</h3>
+        <div id="dash-slots" class="result-box">Loading slots...</div>
+
+        <h3 style="margin-top:20px;">Request Available Slot</h3>
+        <div class="form-group"><label>Open Open Slots</label><select id="available-slots-select"></select></div>
+        <button class="btn" onclick="requestSlot()" style="background:var(--primary);">Request Slot (Awaiting Admin Approval)</button>
+
+        <h3 style="margin-top:20px;">Bulk Payment Intent</h3>
+        <p style="font-size:13px; color:#5f6368;">Select slots to pay for together under a single reference tag.</p>
+        <div class="form-group"><label>Select Active Slots to Pay For</label><div id="intent-slots-container" style="border:1px solid var(--border); padding:10px; border-radius:6px; max-height:120px; overflow-y:auto; background:#fff;"></div></div>
+        <div class="form-group"><label>Total Cumulative Amount (₦)</label><input type="number" id="intent-amount" placeholder="50000"></div>
+        <div class="form-group"><label>Sender Bank Account Name</label><input type="text" id="intent-sender-name" placeholder="Account Name"></div>
+        <button class="btn" onclick="submitBulkPaymentIntent()" style="background:var(--success);">Generate Reference Tag</button>
+        <div id="intent-result" class="result-box" style="display:none; border-left:4px solid var(--success);"><p id="intent-msg" style="margin:0; font-weight:bold; color:var(--success);"></p></div>
+
+        <div class="nav-links" style="margin-top:30px;"><a onclick="switchPanel('login')">Sign Out</a></div>
+    </div>
+
+    <!-- ADMIN LOGIN -->
+    <div id="panel-admin-login" class="panel">
+        <h2>Admin Sign In</h2>
+        <div class="form-group"><label>Admin Phone Number</label><input type="text" id="admin-phone"></div>
+        <div class="form-group"><label>PIN Code</label><input type="password" id="admin-pin"></div>
+        <button class="btn" onclick="adminLogin()">Login as Admin</button>
+        <div class="nav-links"><a onclick="switchPanel('login')">Back to Member Portal</a></div>
+    </div>
+
+    <!-- ADMIN DASHBOARD -->
+    <div id="panel-admin-dash" class="panel">
+        <h2>Admin Dashboard</h2>
+        <p>Logged in as: <span id="admin-name-display" style="font-weight:bold;"></span></p>
+
+        <!-- CREATE BATCH SECTION -->
+        <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+        <h3 style="color:var(--primary);">Create New Contribution Batch</h3>
+        <div class="form-group"><label>Batch ID</label><input type="text" id="batch-id-input" placeholder="e.g. BAT-101"></div>
+        <div class="form-group"><label>Batch Name</label><input type="text" id="batch-name-input" placeholder="e.g. October Batch"></div>
+        <div class="form-group"><label>Total Slots</label><input type="number" id="batch-slots-input" placeholder="e.g. 10"></div>
+        <div class="form-group"><label>Slot Price (₦)</label><input type="number" id="batch-price-input" placeholder="e.g. 50000"></div>
+        <button class="btn" onclick="createBatch()" style="background:var(--primary);">Create Batch & Auto-Generate Slots</button>
+
+        <!-- PENDING SLOT REQUESTS -->
+        <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+        <h3 style="color:var(--primary);">Pending Slot Requests</h3>
+        <div id="admin-pending-slots" class="result-box">Loading pending slots...</div>
+
+        <!-- PENDING CONTRIBUTIONS / PAYMENTS -->
+        <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+        <h3 style="color:var(--primary);">Pending Payment Intents & Contribution Status</h3>
+        <div id="admin-pending-payments" class="result-box">Loading pending payments...</div>
+
+        <!-- BATCH PAYMENT SUMMARY -->
+        <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+        <h3 style="color:var(--primary);">Batch Payment Summary & Financials</h3>
+        <div class="form-group"><label>Batch ID</label><input type="text" id="summary-batch-id" placeholder="e.g. BAT-101"></div>
+        <button class="btn" onclick="fetchBatchSummary()" style="background:var(--primary);">Generate Batch Financial Summary</button>
+
+        <div id="batch-summary-result" class="result-box" style="display:none;">
+            <p><strong>Batch Name:</strong> <span id="sum-batch-name"></span></p>
+            <p><strong>Grand Total Paid In Batch:</strong> ₦<span id="sum-grand-total" style="color:var(--success); font-weight:bold;"></span></p>
+            <p><strong>Total Batch Payout Target:</strong> ₦<span id="sum-total-payout"></span></p>
+            <p><strong>Current Active Cycle Slot:</strong> <span id="sum-current-cycle" style="font-weight:bold; color:var(--primary);"></span></p>
+            
+            <h4 style="color:var(--success); margin-top:15px;">Members Paid Up</h4>
+            <div id="sum-paid-list" style="background:#fff; padding:8px; border-radius:4px; max-height:120px; overflow-y:auto; border:1px solid var(--border);"></div>
+            
+            <h4 style="color:var(--error); margin-top:15px;">Members Owing Outstanding Balance</h4>
+            <div id="sum-owing-list" style="background:#fff; padding:8px; border-radius:4px; max-height:120px; overflow-y:auto; border:1px solid var(--border);"></div>
+        </div>
+
+        <!-- SEQUENTIAL PAYOUT DUE -->
+        <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+        <h3 style="color:var(--primary);">Sequential Payout Due & Eligibility Guardrail</h3>
+        <div class="form-group"><label>Batch ID</label><input type="text" id="check-batch-id" placeholder="BAT-101"></div>
+        <button class="btn" onclick="fetchNextPayoutDue()">Check Next Due Slot & Bank Info</button>
+
+        <div id="payout-due-result" class="result-box" style="display:none;">
+            <p><strong>Slot ID:</strong> <span id="res-slot-id"></span></p>
+            <p><strong>Member:</strong> <span id="res-member-name"></span> (<span id="res-member-phone"></span>)</p>
+            <hr style="margin:8px 0; border:0; border-top:1px solid var(--border);">
+            <p><strong>Payout Bank:</strong> <span id="res-bank-name"></span></p>
+            <p><strong>Account Number:</strong> <span id="res-acc-num"></span></p>
+            <p><strong>Account Name:</strong> <span id="res-acc-name"></span></p>
+            <hr style="margin:8px 0; border:0; border-top:1px solid var(--border);">
+            <p><strong>Balance Paid:</strong> ₦<span id="res-bal-paid"></span> / ₦<span id="res-slot-price"></span></p>
+            <p><strong>Status:</strong> <span id="res-eligibility" style="font-weight:bold;"></span></p>
+        </div>
+
+        <div class="nav-links" style="margin-top:30px;"><a onclick="switchPanel('login')">Sign Out</a></div>
+    </div>
+
+</div>
+
+<script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbzWt3pnMtVyIXApB8AEplAxeurxjArxZWhn6kdZC2i28EKiOjjkLmOpo9uQ80Z5dih4/exec";
+    let currentAdminName = "";
+
+    function switchPanel(panelName) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active-panel'));
+        document.getElementById('panel-' + panelName).classList.add('active-panel');
+    }
+
+    function registerMember() {
+        const payload = {
+            action: "registerMember",
+            fullName: document.getElementById('reg-fullname').value.trim(),
+            phone: document.getElementById('reg-phone').value.trim(),
+            payoutBankName: document.getElementById('reg-bank-name').value.trim(),
+            payoutAccountNumber: document.getElementById('reg-account-number').value.trim(),
+            payoutAccountName: document.getElementById('reg-account-name').value.trim()
+        };
+        fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) })
+        .then(res => res.json())
+        .then(data => { alert(data.message); if (data.status === 'success') switchPanel('login'); });
+    }
+
+    function loginMember() {
+        const memberId = document.getElementById('login-id').value.trim();
+        const phone = document.getElementById('login-phone').value.trim();
+        fetch(`${API_URL}?action=getMemberData&memberId=${memberId}&phone=${phone}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                document.getElementById('dash-name').innerText = data.member.fullName;
+                document.getElementById('dash-id').innerText = data.member.memberId;
+                document.getElementById('dash-bank-info').innerText = `${data.member.bankName || 'N/A'} - ${data.member.accountNumber || 'N/A'} (${data.member.accountName || 'N/A'})`;
+                
+                let slotsHtml = "", slotsCheckboxesHtml = "";
+                if (data.slots.length > 0) {
+                    data.slots.forEach(s => {
+                        slotsHtml += `<div><strong>Slot:</strong> ${s.slotId} | <strong>Batch:</strong> ${s.batchId} | <strong>Status:</strong> ${s.status} | <strong>Paid:</strong> ₦${Number(s.balancePaid).toLocaleString()}</div>`;
+                        if (s.status === "Active" || s.status === "Partially Paid") {
+                            slotsCheckboxesHtml += `<label style="display:flex; align-items:center; margin-bottom:4px;"><input type="checkbox" name="selected-slots" value="${s.slotId}" data-batch-id="${s.batchId}" style="width:auto; margin-right:8px;"> ${s.slotId} (${s.batchId})</label>`;
+                        }
+                    });
+                } else { slotsHtml = "No slots assigned yet."; }
+                
+                document.getElementById('dash-slots').innerHTML = slotsHtml;
+                document.getElementById('intent-slots-container').innerHTML = slotsCheckboxesHtml || "No active slots available for payment.";
+                loadAvailableSlots();
+                switchPanel('dashboard');
+            } else { alert(data.message); }
+        });
+    }
+
+    function loadAvailableSlots() {
+        fetch(`${API_URL}?action=getAvailableSlots`)
+        .then(res => res.json())
+        .then(data => {
+            let html = "";
+            if (data.status === 'success' && data.availableSlots.length > 0) {
+                data.availableSlots.forEach(s => { html += `<option value="${s.slotId}">${s.slotId} (Batch: ${s.batchId})</option>`; });
+            } else { html = `<option value="">No open slots available</option>`; }
+            document.getElementById('available-slots-select').innerHTML = html;
+        });
+    }
+
+    function requestSlot() {
+        const slotId = document.getElementById('available-slots-select').value;
+        const memberId = document.getElementById('dash-id').innerText;
+        if (!slotId) return alert("Select a slot.");
+        fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "requestSlot", memberId: memberId, slotId: slotId }) })
+        .then(res => res.json())
+        .then(data => { alert(data.message); if (data.status === 'success') loginMember(); });
+    }
+
+    function submitBulkPaymentIntent() {
+        const checkboxes = document.querySelectorAll('input[name="selected-slots"]:checked');
+        if (checkboxes.length === 0) return alert("Select at least one slot.");
+        let slotIds = [], batchId = checkboxes[0].dataset.batchId;
+        checkboxes.forEach(cb => slotIds.push(cb.value));
+
+        const payload = {
+            action: "submitPaymentIntent", slotIds: slotIds, batchId: batchId,
+            amount: document.getElementById('intent-amount').value.trim(), senderName: document.getElementById('intent-sender-name').value.trim()
+        };
+        fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('intent-msg').innerText = data.message;
+            document.getElementById('intent-result').style.display = 'block';
+        });
+    }
+
+    function adminLogin() {
+        const phone = document.getElementById('admin-phone').value.trim();
+        const pin = document.getElementById('admin-pin').value.trim();
+        fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "adminLogin", phone: phone, pin: pin }) })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                currentAdminName = data.admin.name;
+                document.getElementById('admin-name-display').innerText = `${currentAdminName} (${data.admin.role})`;
+                loadAdminDashboard();
+                switchPanel('admin-dash');
+            } else { alert(data.message); }
+        });
+    }
+
+    function loadAdminDashboard() {
+        loadPendingSlots();
+        loadPendingPayments();
+    }
+
+    function createBatch() {
+        const batchId = document.getElementById('batch-id-input').value.trim();
+        const batchName = document.getElementById('batch-name-input').value.trim();
+        const totalSlots = document.getElementById('batch-slots-input').value.trim();
+        const slotPrice = document.getElementById('batch-price-input').value.trim();
+
+        if (!batchId || !batchName || !totalSlots || !slotPrice) {
+            alert("Please fill in all batch creation fields.");
+            return;
+        }
+
+        fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: "createBatch", batchId, batchName, totalSlots, slotPrice })
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.message);
+            if(data.status === 'success') {
+                document.getElementById('batch-id-input').value = "";
+                document.getElementById('batch-name-input').value = "";
+                document.getElementById('batch-slots-input').value = "";
+                document.getElementById('batch-price-input').value = "";
+            }
+        });
+    }
+
+    function loadPendingSlots() {
+        fetch(`${API_URL}?action=getPendingSlots`)
+        .then(res => res.json())
+        .then(data => {
+            let html = "";
+            if (data.status === 'success' && data.pendingSlots.length > 0) {
+                data.pendingSlots.forEach(p => {
+                    html += `<div class="admin-card" style="display:flex; justify-content:space-between; align-items:center;">
+                        <span><strong>${p.slotId}</strong> requested by ${p.memberName}</span>
+                        <div>
+                            <button onclick="reviewSlot('${p.slotId}', 'Approve')" style="background:var(--success); color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Approve</button>
+                            <button onclick="reviewSlot('${p.slotId}', 'Reject')" style="background:var(--error); color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Reject</button>
+                        </div>
+                    </div>`;
+                });
+            } else { html = "No pending slot requests."; }
+            document.getElementById('admin-pending-slots').innerHTML = html;
+        });
+    }
+
+    function reviewSlot(slotId, decision) {
+        fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "reviewSlot", slotId: slotId, decision: decision }) })
+        .then(res => res.json())
+        .then(data => { alert(data.message); loadPendingSlots(); });
+    }
+
+    function loadPendingPayments() {
+        fetch(`${API_URL}?action=getAdminData`)
+        .then(res => res.json())
+        .then(data => {
+            let html = "";
+            if (data.status === 'success' && data.pendingPayments.length > 0) {
+                data.pendingPayments.forEach(p => {
+                    html += `<div class="admin-card">
+                        <p style="margin:0 0 5px 0;"><strong>TXN:</strong> ${p.transactionId} | <strong>Slots:</strong> ${p.slotId} | <strong>Amount:</strong> ₦${Number(p.amount).toLocaleString()}</p>
+                        <p style="margin:0 0 10px 0; font-size:13px; color:#555;">Sender: ${p.senderName} (Batch: ${p.batchId})</p>
+                        <button onclick="updatePayment('${p.transactionId}', 'Confirmed')" style="background:var(--success); color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; margin-right:5px;">Confirm Payment</button>
+                        <button onclick="updatePayment('${p.transactionId}', 'Failed')" style="background:var(--error); color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Reject Payment</button>
+                    </div>`;
+                });
+            } else { html = "No pending payment intents."; }
+            document.getElementById('admin-pending-payments').innerHTML = html;
+        });
+    }
+
+    function updatePayment(transactionId, status) {
+        const actionName = status === "Confirmed" ? "confirmPayment" : "rejectPayment";
+        fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: actionName, transactionId: transactionId, adminName: currentAdminName })
+        })
+        .then(res => res.json())
+        .then(data => { alert(data.message); loadPendingPayments(); });
+    }
+
+    function fetchBatchSummary() {
+        const batchId = document.getElementById('summary-batch-id').value.trim();
+        if (!batchId) return alert("Enter a Batch ID.");
+        
+        fetch(`${API_URL}?action=getBatchSummary&batchId=${batchId}`)
+        .then(res => res.json())
+        .then(data => {
+            const box = document.getElementById('batch-summary-result');
+            if (data.status === 'success') {
+                const s = data.summary;
+                document.getElementById('sum-batch-name').innerText = `${s.batchName} (${s.batchId})`;
+                document.getElementById('sum-grand-total').innerText = Number(s.grandTotalPaid).toLocaleString();
+                document.getElementById('sum-total-payout').innerText = Number(s.totalBatchPayout).toLocaleString();
+                document.getElementById('sum-current-cycle').innerText = s.currentCycleSlot;
+                
+                let paidHtml = "";
+                if (s.paidList.length > 0) {
+                    s.paidList.forEach(p => {
+                        paidHtml += `<div style="margin-bottom:4px;">✓ <strong>${p.slotId}</strong> - ${p.memberName}: ₦${Number(p.balancePaid).toLocaleString()}</div>`;
+                    });
+                } else { paidHtml = "No fully paid slots yet."; }
+                document.getElementById('sum-paid-list').innerHTML = paidHtml;
+                
+                let owingHtml = "";
+                if (s.owingList.length > 0) {
+                    s.owingList.forEach(o => {
+                        owingHtml += `<div style="margin-bottom:4px;">✗ <strong>${o.slotId}</strong> - ${o.memberName}: Paid ₦${Number(o.balancePaid).toLocaleString()} | <span style="color:var(--error); font-weight:bold;">Owing ₦${Number(o.owingAmount).toLocaleString()}</span></div>`;
+                    });
+                } else { owingHtml = "Everyone has completed their payments!"; }
+                document.getElementById('sum-owing-list').innerHTML = owingHtml;
+                
+                box.style.display = 'block';
+            } else {
+                alert(data.message);
+                box.style.display = 'none';
+            }
+        });
+    }
+
+    function fetchNextPayoutDue() {
+        const batchId = document.getElementById('check-batch-id').value.trim();
+        if (!batchId) return alert("Enter a Batch ID.");
+        fetch(`${API_URL}?action=getCurrentPayoutDue&batchId=${batchId}`)
+        .then(res => res.json())
+        .then(data => {
+            const box = document.getElementById('payout-due-result');
+            if (data.status === 'success' && data.duePayout) {
+                const p = data.duePayout;
+                document.getElementById('res-slot-id').innerText = p.slotId;
+                document.getElementById('res-member-name').innerText = p.memberName;
+                document.getElementById('res-member-phone').innerText = p.memberPhone;
+                document.getElementById('res-bank-name').innerText = p.payoutBankName || "N/A";
+                document.getElementById('res-acc-num').innerText = p.payoutAccountNumber || "N/A";
+                document.getElementById('res-acc-name').innerText = p.payoutAccountName || "N/A";
+                document.getElementById('res-bal-paid').innerText = Number(p.balancePaid).toLocaleString();
+                document.getElementById('res-slot-price').innerText = Number(p.slotPrice).toLocaleString();
+                
+                const eligEl = document.getElementById('res-eligibility');
+                eligEl.innerText = p.eligibleForPayout ? "ELIGIBLE FOR PAYOUT" : "BLOCKED: Outstanding Balance";
+                eligEl.style.color = p.eligibleForPayout ? "var(--success)" : "var(--error)";
+                box.style.display = 'block';
+            } else { alert(data.message || "No slot found."); box.style.display = 'none'; }
+        });
+    }
+</script>
+
+</body>
+</html>
