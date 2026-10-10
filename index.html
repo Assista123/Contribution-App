@@ -13,22 +13,29 @@
             --card-bg: #ffffff;
             --text: #202124;
             --border: #dadce0;
+            --warning: #f9ab00;
         }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        .container { max-width: 700px; margin: 0 auto; background: var(--card-bg); padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .container { max-width: 780px; margin: 0 auto; background: var(--card-bg); padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
         h2, h3 { color: var(--primary); margin-top: 0; }
         .form-group { margin-bottom: 16px; }
         label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
         input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         .btn { background-color: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-top: 10px; }
         .btn:hover { opacity: 0.9; }
+        .btn-sm { padding: 6px 12px; font-size: 13px; width: auto; margin-top: 0; }
         .nav-links { text-align: center; margin-top: 20px; font-size: 14px; }
         .nav-links a { color: var(--primary); cursor: pointer; text-decoration: none; }
         .nav-links a:hover { text-decoration: underline; }
         .panel { display: none; }
         .active-panel { display: block; }
         .result-box { margin-top: 15px; background: #f1f3f4; padding: 15px; border-radius: 8px; }
-        .admin-card { background: #fff; padding: 10px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 10px; }
+        .admin-card { background: #fff; padding: 12px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 10px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .badge-success { background: #e6f4ea; color: var(--success); }
+        .badge-error { background: #fce8e6; color: var(--error); }
+        .badge-warning { background: #fef7e0; color: #b06000; }
+        .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -68,12 +75,12 @@
         <div id="dash-slots" class="result-box">Loading slots...</div>
 
         <h3 style="margin-top:20px;">Request Available Slot</h3>
-        <div class="form-group"><label>Open Open Slots</label><select id="available-slots-select"></select></div>
+        <div class="form-group"><label>Open Slots</label><select id="available-slots-select"></select></div>
         <button class="btn" onclick="requestSlot()" style="background:var(--primary);">Request Slot (Awaiting Admin Approval)</button>
 
         <h3 style="margin-top:20px;">Bulk Payment Intent</h3>
         <p style="font-size:13px; color:#5f6368;">Select slots to pay for together under a single reference tag.</p>
-        <div class="form-group"><label>Select Active Slots to Pay For</label><div id="intent-slots-container" style="border:1px solid var(--border); padding:10px; border-radius:6px; max-height:120px; overflow-y:auto; background:#fff;"></div></div>
+        <div class="form-group"><label>Select Active / Partially Paid Slots</label><div id="intent-slots-container" style="border:1px solid var(--border); padding:10px; border-radius:6px; max-height:120px; overflow-y:auto; background:#fff;"></div></div>
         <div class="form-group"><label>Total Cumulative Amount (₦)</label><input type="number" id="intent-amount" placeholder="50000"></div>
         <div class="form-group"><label>Sender Bank Account Name</label><input type="text" id="intent-sender-name" placeholder="Account Name"></div>
         <button class="btn" onclick="submitBulkPaymentIntent()" style="background:var(--success);">Generate Reference Tag</button>
@@ -96,48 +103,96 @@
         <h2>Admin Dashboard</h2>
         <p>Logged in as: <span id="admin-name-display" style="font-weight:bold;"></span></p>
 
-        <!-- CREATE BATCH SECTION -->
+        <!-- CREATE BATCH -->
         <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
         <h3 style="color:var(--primary);">Create New Contribution Batch</h3>
         <div class="form-group"><label>Batch ID</label><input type="text" id="batch-id-input" placeholder="e.g. BAT-101"></div>
-        <div class="form-group"><label>Batch Name</label><input type="text" id="batch-name-input" placeholder="e.g. October Batch"></div>
+        <div class="form-group"><label>Batch Name</label><input type="text" id="batch-name-input" placeholder="e.g. October Contribution"></div>
         <div class="form-group"><label>Total Slots</label><input type="number" id="batch-slots-input" placeholder="e.g. 10"></div>
         <div class="form-group"><label>Slot Price (₦)</label><input type="number" id="batch-price-input" placeholder="e.g. 50000"></div>
-        <button class="btn" onclick="createBatch()" style="background:var(--primary);">Create Batch & Auto-Generate Slots</button>
+        <div class="form-group">
+            <label>Contribution Frequency</label>
+            <select id="batch-frequency-input">
+                <option value="Daily">Daily</option>
+                <option value="Weekly" selected>Weekly</option>
+                <option value="Bi-weekly">Bi-weekly</option>
+                <option value="Monthly">Monthly</option>
+            </select>
+        </div>
+        <div class="form-group"><label>Start Date</label><input type="date" id="batch-start-date-input"></div>
+        <button class="btn" onclick="createBatch()" style="background:var(--primary);">Create Batch & Auto-GenerateSlots</button>
 
         <!-- PENDING SLOT REQUESTS -->
         <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
         <h3 style="color:var(--primary);">Pending Slot Requests</h3>
         <div id="admin-pending-slots" class="result-box">Loading pending slots...</div>
 
-        <!-- PENDING CONTRIBUTIONS / PAYMENTS -->
+        <!-- PENDING PAYMENTS -->
         <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
-        <h3 style="color:var(--primary);">Pending Payment Intents & Contribution Status</h3>
+        <h3 style="color:var(--primary);">Pending Payment Intents</h3>
         <div id="admin-pending-payments" class="result-box">Loading pending payments...</div>
 
-        <!-- BATCH PAYMENT SUMMARY -->
+        <!-- UNMATCHED BANK ALERTS (Manual Match) -->
         <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
-        <h3 style="color:var(--primary);">Batch Payment Summary & Financials</h3>
-        <div class="form-group"><label>Batch ID</label><input type="text" id="summary-batch-id" placeholder="e.g. BAT-101"></div>
-        <button class="btn" onclick="fetchBatchSummary()" style="background:var(--primary);">Generate Batch Financial Summary</button>
+        <div class="section-title">
+            <h3 style="color:var(--primary); margin:0;">Unmatched Bank Alerts (Manual Review)</h3>
+            <button class="btn btn-sm" onclick="loadUnmatchedAlerts()" style="width:auto;">Refresh</button>
+        </div>
+        <p style="font-size:13px; color:#5f6368; margin-top:4px;">Alerts that arrived without a TXN reference (or failed auto-match). Match them to a pending payment intent.</p>
+        <div id="admin-unmatched-alerts" class="result-box">Click Refresh to load unmatched alerts...</div>
+
+        <!-- OFFLINE / DIRECT PAYMENT -->
+        <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+        <h3 style="color:var(--primary);">Record Offline / Direct Payment</h3>
+        <p style="font-size:13px; color:#5f6368;">Use this when someone paid cash or transferred without generating a reference tag.</p>
+        <div class="form-group"><label>Slot ID(s) – comma separated if multiple</label><input type="text" id="offline-slot-ids" placeholder="e.g. BAT-101_01 or BAT-101_01, BAT-101_02"></div>
+        <div class="form-group"><label>Batch ID (optional)</label><input type="text" id="offline-batch-id" placeholder="BAT-101"></div>
+        <div class="form-group"><label>Amount (₦)</label><input type="number" id="offline-amount" placeholder="50000"></div>
+        <div class="form-group"><label>Sender / Payer Name</label><input type="text" id="offline-sender" placeholder="John Doe"></div>
+        <div class="form-group"><label>Payment Method</label>
+            <select id="offline-method">
+                <option value="Cash">Cash</option>
+                <option value="Direct Transfer">Direct Transfer</option>
+                <option value="POS">POS</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+        <button class="btn" style="background:var(--success);" onclick="recordOfflinePayment()">Record Offline Payment</button>
+
+        <!-- BATCH PAYMENT SUMMARY (Dropdown) -->
+        <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+        <h3 style="color:var(--primary);">Batch Payment Summary & Frequency Tracking</h3>
+        <div class="form-group">
+            <label>Select Active Batch</label>
+            <select id="summary-batch-select">
+                <option value="">-- Select Batch --</option>
+            </select>
+        </div>
+        <button class="btn" onclick="fetchBatchSummary()" style="background:var(--primary);">Generate Financial Summary</button>
 
         <div id="batch-summary-result" class="result-box" style="display:none;">
-            <p><strong>Batch Name:</strong> <span id="sum-batch-name"></span></p>
-            <p><strong>Grand Total Paid In Batch:</strong> ₦<span id="sum-grand-total" style="color:var(--success); font-weight:bold;"></span></p>
+            <p><strong>Batch:</strong> <span id="sum-batch-name"></span></p>
+            <p><strong>Frequency:</strong> <span id="sum-frequency"></span> &nbsp;|&nbsp; <strong>Elapsed Cycles:</strong> <span id="sum-elapsed"></span></p>
+            <p><strong>Grand Total Paid:</strong> ₦<span id="sum-grand-total" style="color:var(--success); font-weight:bold;"></span></p>
             <p><strong>Total Batch Payout Target:</strong> ₦<span id="sum-total-payout"></span></p>
             <p><strong>Current Active Cycle Slot:</strong> <span id="sum-current-cycle" style="font-weight:bold; color:var(--primary);"></span></p>
             
-            <h4 style="color:var(--success); margin-top:15px;">Members Paid Up</h4>
-            <div id="sum-paid-list" style="background:#fff; padding:8px; border-radius:4px; max-height:120px; overflow-y:auto; border:1px solid var(--border);"></div>
+            <h4 style="color:var(--success); margin-top:15px;">Members Fully Paid</h4>
+            <div id="sum-paid-list" style="background:#fff; padding:8px; border-radius:4px; max-height:140px; overflow-y:auto; border:1px solid var(--border);"></div>
             
-            <h4 style="color:var(--error); margin-top:15px;">Members Owing Outstanding Balance</h4>
-            <div id="sum-owing-list" style="background:#fff; padding:8px; border-radius:4px; max-height:120px; overflow-y:auto; border:1px solid var(--border);"></div>
+            <h4 style="color:var(--error); margin-top:15px;">Members Owing (by Frequency Pace)</h4>
+            <div id="sum-owing-list" style="background:#fff; padding:8px; border-radius:4px; max-height:160px; overflow-y:auto; border:1px solid var(--border);"></div>
         </div>
 
-        <!-- SEQUENTIAL PAYOUT DUE -->
+        <!-- SEQUENTIAL PAYOUT DUE (Dropdown) -->
         <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
-        <h3 style="color:var(--primary);">Sequential Payout Due & Eligibility Guardrail</h3>
-        <div class="form-group"><label>Batch ID</label><input type="text" id="check-batch-id" placeholder="BAT-101"></div>
+        <h3 style="color:var(--primary);">Sequential Payout Due & Eligibility</h3>
+        <div class="form-group">
+            <label>Select Active Batch</label>
+            <select id="payout-batch-select">
+                <option value="">-- Select Batch --</option>
+            </select>
+        </div>
         <button class="btn" onclick="fetchNextPayoutDue()">Check Next Due Slot & Bank Info</button>
 
         <div id="payout-due-result" class="result-box" style="display:none;">
@@ -160,6 +215,7 @@
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbzWt3pnMtVyIXApB8AEplAxeurxjArxZWhn6kdZC2i28EKiOjjkLmOpo9uQ80Z5dih4/exec";
     let currentAdminName = "";
+    let pendingPaymentsCache = [];   // used for the match dropdown
 
     function switchPanel(panelName) {
         document.querySelectorAll('.panel').forEach(p => p.classList.remove('active-panel'));
@@ -195,7 +251,7 @@
                 if (data.slots.length > 0) {
                     data.slots.forEach(s => {
                         slotsHtml += `<div><strong>Slot:</strong> ${s.slotId} | <strong>Batch:</strong> ${s.batchId} | <strong>Status:</strong> ${s.status} | <strong>Paid:</strong> ₦${Number(s.balancePaid).toLocaleString()}</div>`;
-                        if (s.status === "Active" || s.status === "Partially Paid") {
+                        if (s.status === "Active" || s.status === "Partially Paid" || s.status === "Confirmed") {
                             slotsCheckboxesHtml += `<label style="display:flex; align-items:center; margin-bottom:4px;"><input type="checkbox" name="selected-slots" value="${s.slotId}" data-batch-id="${s.batchId}" style="width:auto; margin-right:8px;"> ${s.slotId} (${s.batchId})</label>`;
                         }
                     });
@@ -266,6 +322,26 @@
     function loadAdminDashboard() {
         loadPendingSlots();
         loadPendingPayments();
+        loadActiveBatches();
+        loadUnmatchedAlerts();
+    }
+
+    /* ---------- Active Batches Dropdown ---------- */
+    function loadActiveBatches() {
+        fetch(`${API_URL}?action=getActiveBatches`)
+        .then(res => res.json())
+        .then(data => {
+            let options = `<option value="">-- Select Batch --</option>`;
+            if (data.status === 'success' && data.activeBatches.length > 0) {
+                data.activeBatches.forEach(b => {
+                    options += `<option value="${b.batchId}">${b.batchId} – ${b.batchName} (${b.frequency})</option>`;
+                });
+            } else {
+                options = `<option value="">No active batches found</option>`;
+            }
+            document.getElementById('summary-batch-select').innerHTML = options;
+            document.getElementById('payout-batch-select').innerHTML = options;
+        });
     }
 
     function createBatch() {
@@ -273,24 +349,27 @@
         const batchName = document.getElementById('batch-name-input').value.trim();
         const totalSlots = document.getElementById('batch-slots-input').value.trim();
         const slotPrice = document.getElementById('batch-price-input').value.trim();
+        const frequency = document.getElementById('batch-frequency-input').value;
+        const startDate = document.getElementById('batch-start-date-input').value;
 
-        if (!batchId || !batchName || !totalSlots || !slotPrice) {
-            alert("Please fill in all batch creation fields.");
+        if (!batchId || !batchName || !totalSlots || !slotPrice || !startDate) {
+            alert("Please fill in all batch creation fields including start date.");
             return;
         }
 
         fetch(API_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: "createBatch", batchId, batchName, totalSlots, slotPrice })
+            body: JSON.stringify({ action: "createBatch", batchId, batchName, totalSlots, slotPrice, frequency, startDate })
         })
         .then(res => res.json())
         .then(data => {
             alert(data.message);
-            if(data.status === 'success') {
+            if (data.status === 'success') {
                 document.getElementById('batch-id-input').value = "";
                 document.getElementById('batch-name-input').value = "";
                 document.getElementById('batch-slots-input').value = "";
                 document.getElementById('batch-price-input').value = "";
+                loadActiveBatches();   // refresh dropdowns
             }
         });
     }
@@ -305,8 +384,8 @@
                     html += `<div class="admin-card" style="display:flex; justify-content:space-between; align-items:center;">
                         <span><strong>${p.slotId}</strong> requested by ${p.memberName}</span>
                         <div>
-                            <button onclick="reviewSlot('${p.slotId}', 'Approve')" style="background:var(--success); color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Approve</button>
-                            <button onclick="reviewSlot('${p.slotId}', 'Reject')" style="background:var(--error); color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Reject</button>
+                            <button onclick="reviewSlot('${p.slotId}', 'Approve')" class="btn btn-sm" style="background:var(--success);">Approve</button>
+                            <button onclick="reviewSlot('${p.slotId}', 'Reject')" class="btn btn-sm" style="background:var(--error);">Reject</button>
                         </div>
                     </div>`;
                 });
@@ -325,14 +404,15 @@
         fetch(`${API_URL}?action=getAdminData`)
         .then(res => res.json())
         .then(data => {
+            pendingPaymentsCache = data.pendingPayments || [];
             let html = "";
-            if (data.status === 'success' && data.pendingPayments.length > 0) {
-                data.pendingPayments.forEach(p => {
+            if (data.status === 'success' && pendingPaymentsCache.length > 0) {
+                pendingPaymentsCache.forEach(p => {
                     html += `<div class="admin-card">
                         <p style="margin:0 0 5px 0;"><strong>TXN:</strong> ${p.transactionId} | <strong>Slots:</strong> ${p.slotId} | <strong>Amount:</strong> ₦${Number(p.amount).toLocaleString()}</p>
                         <p style="margin:0 0 10px 0; font-size:13px; color:#555;">Sender: ${p.senderName} (Batch: ${p.batchId})</p>
-                        <button onclick="updatePayment('${p.transactionId}', 'Confirmed')" style="background:var(--success); color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; margin-right:5px;">Confirm Payment</button>
-                        <button onclick="updatePayment('${p.transactionId}', 'Failed')" style="background:var(--error); color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Reject Payment</button>
+                        <button onclick="updatePayment('${p.transactionId}', 'Confirmed')" class="btn btn-sm" style="background:var(--success); margin-right:5px;">Confirm</button>
+                        <button onclick="updatePayment('${p.transactionId}', 'Failed')" class="btn btn-sm" style="background:var(--error);">Reject</button>
                     </div>`;
                 });
             } else { html = "No pending payment intents."; }
@@ -347,12 +427,78 @@
             body: JSON.stringify({ action: actionName, transactionId: transactionId, adminName: currentAdminName })
         })
         .then(res => res.json())
-        .then(data => { alert(data.message); loadPendingPayments(); });
+        .then(data => { alert(data.message); loadPendingPayments(); loadUnmatchedAlerts(); });
     }
 
+    /* ---------- Unmatched Alerts + Manual Match ---------- */
+    function loadUnmatchedAlerts() {
+        fetch(`${API_URL}?action=getUnmatchedAlerts`)
+        .then(res => res.json())
+        .then(data => {
+            let html = "";
+            if (data.status === 'success' && data.unmatchedAlerts.length > 0) {
+                data.unmatchedAlerts.forEach(a => {
+                    // build pending TXN options
+                    let txOptions = `<option value="">-- Select pending TXN --</option>`;
+                    pendingPaymentsCache.forEach(p => {
+                        txOptions += `<option value="${p.transactionId}">${p.transactionId} – ₦${Number(p.amount).toLocaleString()} (${p.senderName})</option>`;
+                    });
+
+                    html += `<div class="admin-card">
+                        <p style="margin:0 0 4px 0;"><strong>${a.alertId}</strong> 
+                            <span class="badge badge-warning">${a.matchStatus}</span>
+                        </p>
+                        <p style="margin:0 0 4px 0; font-size:13px;">
+                            <strong>₦${Number(a.amount).toLocaleString()}</strong> from ${a.senderName} 
+                            &nbsp;|&nbsp; ${a.bankName} &nbsp;|&nbsp; ${new Date(a.timestamp).toLocaleString()}
+                        </p>
+                        <p style="margin:0 0 10px 0; font-size:12px; color:#666; max-height:40px; overflow:hidden;">${a.details || ''}</p>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <select id="match-select-${a.alertId}" style="flex:1; padding:6px;">
+                                ${txOptions}
+                            </select>
+                            <button class="btn btn-sm" style="background:var(--success);" 
+                                onclick="manualMatch('${a.alertId}')">Match</button>
+                        </div>
+                    </div>`;
+                });
+            } else {
+                html = "No unmatched alerts. All clear!";
+            }
+            document.getElementById('admin-unmatched-alerts').innerHTML = html;
+        });
+    }
+
+    function manualMatch(alertId) {
+        const select = document.getElementById(`match-select-${alertId}`);
+        const transactionId = select.value;
+        if (!transactionId) return alert("Please select a pending transaction to match.");
+
+        if (!confirm(`Match alert ${alertId} → ${transactionId}?`)) return;
+
+        fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: "manualMatchAlert",
+                alertId: alertId,
+                transactionId: transactionId,
+                adminName: currentAdminName
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.message);
+            if (data.status === 'success') {
+                loadPendingPayments();
+                loadUnmatchedAlerts();
+            }
+        });
+    }
+
+    /* ---------- Batch Summary (uses dropdown) ---------- */
     function fetchBatchSummary() {
-        const batchId = document.getElementById('summary-batch-id').value.trim();
-        if (!batchId) return alert("Enter a Batch ID.");
+        const batchId = document.getElementById('summary-batch-select').value;
+        if (!batchId) return alert("Select a batch first.");
         
         fetch(`${API_URL}?action=getBatchSummary&batchId=${batchId}`)
         .then(res => res.json())
@@ -361,6 +507,8 @@
             if (data.status === 'success') {
                 const s = data.summary;
                 document.getElementById('sum-batch-name').innerText = `${s.batchName} (${s.batchId})`;
+                document.getElementById('sum-frequency').innerText = s.frequency || "Weekly";
+                document.getElementById('sum-elapsed').innerText = s.elapsedCycles || 1;
                 document.getElementById('sum-grand-total').innerText = Number(s.grandTotalPaid).toLocaleString();
                 document.getElementById('sum-total-payout').innerText = Number(s.totalBatchPayout).toLocaleString();
                 document.getElementById('sum-current-cycle').innerText = s.currentCycleSlot;
@@ -368,7 +516,7 @@
                 let paidHtml = "";
                 if (s.paidList.length > 0) {
                     s.paidList.forEach(p => {
-                        paidHtml += `<div style="margin-bottom:4px;">✓ <strong>${p.slotId}</strong> - ${p.memberName}: ₦${Number(p.balancePaid).toLocaleString()}</div>`;
+                        paidHtml += `<div style="margin-bottom:4px;">✓ <strong>${p.slotId}</strong> – ${p.memberName}: ₦${Number(p.balancePaid).toLocaleString()}</div>`;
                     });
                 } else { paidHtml = "No fully paid slots yet."; }
                 document.getElementById('sum-paid-list').innerHTML = paidHtml;
@@ -376,7 +524,15 @@
                 let owingHtml = "";
                 if (s.owingList.length > 0) {
                     s.owingList.forEach(o => {
-                        owingHtml += `<div style="margin-bottom:4px;">✗ <strong>${o.slotId}</strong> - ${o.memberName}: Paid ₦${Number(o.balancePaid).toLocaleString()} | <span style="color:var(--error); font-weight:bold;">Owing ₦${Number(o.owingAmount).toLocaleString()}</span></div>`;
+                        const paceBadge = o.pace === "Behind Schedule" 
+                            ? `<span class="badge badge-error">Behind Schedule</span>` 
+                            : `<span class="badge badge-success">On Track</span>`;
+                        owingHtml += `<div style="margin-bottom:6px;">
+                            ✗ <strong>${o.slotId}</strong> – ${o.memberName}<br>
+                            &nbsp;&nbsp;Paid ₦${Number(o.balancePaid).toLocaleString()} 
+                            | <span style="color:var(--error); font-weight:bold;">Owing ₦${Number(o.owingAmount).toLocaleString()}</span>
+                            &nbsp; ${paceBadge}
+                        </div>`;
                     });
                 } else { owingHtml = "Everyone has completed their payments!"; }
                 document.getElementById('sum-owing-list').innerHTML = owingHtml;
@@ -389,9 +545,10 @@
         });
     }
 
+    /* ---------- Sequential Payout (uses dropdown) ---------- */
     function fetchNextPayoutDue() {
-        const batchId = document.getElementById('check-batch-id').value.trim();
-        if (!batchId) return alert("Enter a Batch ID.");
+        const batchId = document.getElementById('payout-batch-select').value;
+        if (!batchId) return alert("Select a batch first.");
         fetch(`${API_URL}?action=getCurrentPayoutDue&batchId=${batchId}`)
         .then(res => res.json())
         .then(data => {
@@ -411,7 +568,10 @@
                 eligEl.innerText = p.eligibleForPayout ? "ELIGIBLE FOR PAYOUT" : "BLOCKED: Outstanding Balance";
                 eligEl.style.color = p.eligibleForPayout ? "var(--success)" : "var(--error)";
                 box.style.display = 'block';
-            } else { alert(data.message || "No slot found."); box.style.display = 'none'; }
+            } else { 
+                alert(data.message || "No slot found."); 
+                box.style.display = 'none'; 
+            }
         });
     }
 </script>
